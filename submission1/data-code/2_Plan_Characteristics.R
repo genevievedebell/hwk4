@@ -527,7 +527,7 @@ for (y in 2010:2015) {
     full_join(macd.data, by=c("contractid", "planid", "state", "county")) %>%
     mutate(year=y)
   
-  if (y==2007) {
+  if (y==2010) {
     plan.premiums=ma.macd.data
   } else {
     plan.premiums=rbind(plan.premiums,ma.macd.data)

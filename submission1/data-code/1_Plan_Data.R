@@ -2,8 +2,10 @@
 ## Read in enrollment data for january of each year
 #########################################################################
 
-## Basic Contract Info
-contract.info <- read_csv("/Users/genevievedebell/Documents/GitHub/hwk4/data/input/CPSC_Contract_Info_2015_01.csv",
+for (y in 2010:2015) {
+  ## Basic contract/plan information
+  ma.path=paste0("data/input/CPSC_Contract_Info_2015_01.csv")
+  contract.info=read_csv(ma.path,
                          skip=1,
                          col_names = c("contractid","planid","org_type","plan_type",
                                        "partd","snp","eghp","org_name","org_marketing_name",
@@ -23,14 +25,17 @@ contract.info <- read_csv("/Users/genevievedebell/Documents/GitHub/hwk4/data/inp
                            contract_date = col_character()
                          ))
 
-contract.info <- contract.info %>%
-  group_by(contractid, planid) %>%
-  mutate(id_count=row_number()) %>%
-  filter(id_count==1) %>%
-  select(-id_count)
+  contract.info = contract.info %>%
+    group_by(contractid, planid) %>%
+    mutate(id_count=row_number())
     
-## Enrollments per plan
-enroll.info <- read_csv("/Users/genevievedebell/Documents/GitHub/hwk4/data/input/CPSC_Enrollment_Info_2015_01.csv",
+  contract.info = contract.info %>%
+    filter(id_count==1) %>%
+    select(-id_count)
+    
+    ## Enrollments per plan
+  ma.path=paste0("data/input/CPSC_Enrollment_Info_2015_01.csv")
+  enroll.info=read_csv(ma.path,
                        skip=1,
                        col_names = c("contractid","planid","ssa","fips","state","county","enrollment"),
                        col_types = cols(
@@ -42,17 +47,41 @@ enroll.info <- read_csv("/Users/genevievedebell/Documents/GitHub/hwk4/data/input
                        county = col_character(),
                        enrollment = col_double()
                        ),na="*")
-
-## Merge contract info with enrollment info
-plan.data <- contract.info %>%
-  left_join(enroll.info, by=c("contractid", "planid")) %>%
-  mutate(year=2015) %>%
-  group_by(state, county) %>%
-  fill(fips) %>%
-  group_by(contractid, planid) %>%
-  fill(plan_type, partd, snp, eghp, plan_name) %>%
-  group_by(contractid) %>%
-  fill(org_type,org_name,org_marketing_name,parent_org)
     
-write_rds(plan.data,"/Users/genevievedebell/Documents/GitHub/hwk4/data/output/plan_data.rds")
-sapply(paste0("ma_data_", 2007:2015, ".rds"), unlink)
+
+  ## Merge contract info with enrollment info
+  plan.data = contract.info %>%
+    left_join(enroll.info, by=c("contractid", "planid")) %>%
+    mutate(year=y)
+    
+  ## Fill in missing fips codes (by state and county)
+  plan.data = plan.data %>%
+    group_by(state, county) %>%
+    fill(fips)
+
+  ## Fill in missing plan characteristics by contract and plan id
+  plan.data = plan.data %>%
+    group_by(contractid, planid) %>%
+    fill(plan_type, partd, snp, eghp, plan_name)
+  
+  ## Fill in missing contract characteristics by contractid
+  plan.data = plan.data %>%
+    group_by(contractid) %>%
+    fill(org_type,org_name,org_marketing_name,parent_org)
+    
+  ## Collapse from monthly data to yearly
+  plan.year = plan.data %>%
+    group_by(contractid, planid, fips) %>%
+    arrange(contractid, planid, fips) %>%
+    rename(avg_enrollment=enrollment)
+  
+  write_rds(plan.year,paste0("data/output/ma_data_",y,".rds"))
+}
+
+full.ma.data <- read_rds("data/output/ma_data_2010.rds")
+for (y in 2010:2015) {
+  full.ma.data <- rbind(full.ma.data,read_rds(paste0("data/output/ma_data_",y,".rds")))
+}
+
+write_rds(full.ma.data,"data/output/full_ma_data.rds")
+sapply(paste0("ma_data_", 2010:2015, ".rds"), unlink)
