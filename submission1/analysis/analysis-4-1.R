@@ -17,7 +17,11 @@ ggplot(plans_per_county_year, aes(x = factor(year), y = plan_count)) +
   ) +
   theme_minimal()
 
-table(final.data$year)
-
-plan_data <- read_rds("data/output/plan_data.rds")
-table(plan_data$year)
+plans_per_county_year %>%
+  group_by(year) %>%
+  summarise(
+    mean_plans = mean(plan_count),
+    median_plans = median(plan_count),
+    max_plans = max(plan_count),
+    n_counties = n()
+  )
