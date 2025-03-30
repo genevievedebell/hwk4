@@ -4,7 +4,7 @@
 
 for (y in 2010:2015) {
   ## Basic contract/plan information
-  ma.path=paste0("data/input/CPSC_Contract_Info_"y"_01.csv")
+  ma.path=paste0("data/input/CPSC_Contract_Info_",y,"_01.csv")
   contract.info=read_csv(ma.path,
                          skip=1,
                          col_names = c("contractid","planid","org_type","plan_type",
@@ -34,7 +34,7 @@ for (y in 2010:2015) {
     select(-id_count)
     
     ## Enrollments per plan
-  ma.path=paste0("data/input/CPSC_Enrollment_Info_"y"_01.csv")
+  ma.path=paste0("data/input/CPSC_Enrollment_Info_",y,"_01.csv")
   enroll.info=read_csv(ma.path,
                        skip=1,
                        col_names = c("contractid","planid","ssa","fips","state","county","enrollment"),
