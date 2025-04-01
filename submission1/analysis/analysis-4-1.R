@@ -80,26 +80,29 @@ ggplot(avg_penetration, aes(x = year, y = avg_ma_share)) +
 
 # 5. Calculate the running variable underlying the star rating. Provide a table showing the number of plans that are rounded up into a 3-star, 3.5-star, 4-star, 4.5-star, and 5-star rating.
 
-## Filter for 2010
+library(dplyr)
+library(knitr)
+
+final_2010_table <- final.data %>%
+  filter(year == 2010, !is.na(partc_score)) %>%
+  count(partc_score) %>%
+  filter(partc_score %in% c(3, 3.5, 4, 4.5, 5)) %>%
+  rename(`Rounded Rating` = partc_score,
+         `Number of Plans` = n)
+
+kable(final_2010_table, caption = "Number of Plans Receiving Each Rounded Star Rating in 2010")
+
+
+# 6. Using the RD estimator with a bandwidth of 0.125, provide an estimate of the effect of receiving a 3-star versus a 2.5 star rating on enrollments. Repeat the exercise to estimate the effects at 3.5 stars, and summarize your results in a table.
 final_2010 <- final.data %>%
-  filter(year == 2010) %>%
-  select(contractid, planid, partc_score, Star_Rating) %>%
-  filter(!is.na(partc_score) & !is.na(Star_Rating))
+  filter(year == 2010, !is.na(partc_score), !is.na(avg_enrollment))
 
+cutoff_3.0 <- 2.75
+bw <- 0.125
 
-## Identify rounding
-rounded_up_table <- final_2010 %>%
-  mutate(rounded_up = Star_Rating > partc_score) %>%
-  filter(rounded_up == TRUE & Star_Rating %in% c(3, 3.5, 4, 4.5, 5)) %>%
-  group_by(Star_Rating) %>%
-  summarise(n_rounded_up = n()) %>%
-  arrange(Star_Rating)
+rd_3.0 <- final_2010 %>%
+  filter(partc_score >= (cutoff_3.0 - bw) & partc_score <= (cutoff_3.0 + bw)) %>%
+  mutate(treatment = ifelse(partc_score >= cutoff_3.0, 1, 0))
 
-print (rounded_up_table)
-
-final_2010 %>%
-  summarise(
-    same = sum(Star_Rating == partc_score, na.rm = TRUE),
-    greater = sum(Star_Rating > partc_score, na.rm = TRUE),
-    less = sum(Star_Rating < partc_score, na.rm = TRUE)
-  )
+model_3.0 <- lm(avg_enrollment ~ treatment, data = rd_3.0)
+summary(model_3.0)
