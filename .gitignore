@@ -1,2 +1,13 @@
 data/*
+.Rdata
+.Rhistory
+
+# Ignore R workspace file
+submission1/Hwk4_workspace.Rdata
+
+# Ignore results folder
+submission1/results/
+
+
+
 

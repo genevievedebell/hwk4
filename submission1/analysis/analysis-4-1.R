@@ -94,15 +94,24 @@ kable(final_2010_table, caption = "Number of Plans Receiving Each Rounded Star R
 
 
 # 6. Using the RD estimator with a bandwidth of 0.125, provide an estimate of the effect of receiving a 3-star versus a 2.5 star rating on enrollments. Repeat the exercise to estimate the effects at 3.5 stars, and summarize your results in a table.
+
+# Filter 2010 and necessary variables
 final_2010 <- final.data %>%
   filter(year == 2010, !is.na(partc_score), !is.na(avg_enrollment))
 
-cutoff_3.0 <- 2.75
-bw <- 0.125
-
+## effect of 3.5-star vs 3-star rating
 rd_3.0 <- final_2010 %>%
-  filter(partc_score >= (cutoff_3.0 - bw) & partc_score <= (cutoff_3.0 + bw)) %>%
-  mutate(treatment = ifelse(partc_score >= cutoff_3.0, 1, 0))
+  filter(partc_score %in% c(2.5, 3.0)) %>%
+  mutate(treatment = ifelse(partc_score == 3.0, 1, 0))
 
 model_3.0 <- lm(avg_enrollment ~ treatment, data = rd_3.0)
 summary(model_3.0)
+
+
+final_2010 <- final.data %>%
+  filter(year == 2010)
+
+glimpse(final_2010)
+
+save.image("submission1/Hwk4_workspace.Rdata")
+

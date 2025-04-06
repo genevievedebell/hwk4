@@ -1,5 +1,5 @@
 ##############################################################################
-## Read in Average Fee-for-Service Costs per County */
+## Read in Average Fee-for-Service Costs per County 
 ##############################################################################
 
 ## Assign yearly file paths

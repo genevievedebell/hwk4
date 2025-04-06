@@ -6,7 +6,7 @@ install.packages("plyr")
 ## Assign yearly datasets and clean star rating information
 
 ## 2010
-ma.path.2010a <- paste0("data/input/ma-star-ratings/2010/2010_Part_C_Report_Card_Master_Table_2009_11_30_domain.csv")
+ma.path.2010a <- paste0("data/input/ma-star-ratings/2010/2010_Part_C_Report_Card_Master_Table_2010_11_30_domain.csv")
 star.data.2010a <- read_csv(ma.path.2010a,
                          skip=4,
                          col_names=rating.vars.2010)
@@ -18,7 +18,7 @@ star.data.2010a <- star.data.2010a %>%
   mutate_at(vars(-one_of("contractid","org_type","contract_name","org_marketing")),
             as.numeric)
 
-ma.path.2010b <- paste0("data/input/ma-star-ratings/2010/2010_Part_C_Report_Card_Master_Table_2009_11_30_summary.csv")
+ma.path.2010b <- paste0("data/input/ma-star-ratings/2010/2010_Part_C_Report_Card_Master_Table_2010_11_30_summary.csv")
 star.data.2010b <- read_csv(ma.path.2010b,
                          skip=2,
                          col_names=c("contractid","org_type","contract_name","org_marketing","partc_score"))
