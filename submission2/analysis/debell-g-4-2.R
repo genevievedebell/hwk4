@@ -66,7 +66,8 @@ ggplot(avg_benchmark, aes(x = year, y = avg_benchmark)) +
   theme_minimal()
 
 #. 4. Plot the average share of Medicare Advantage (relative to all Medicare eligibles) over time from 2010 through 2015. Has Medicare Advantage increased or decreased in popularity? How does this share correlate with benchmark payments?
-## Filter data for the years of interest
+
+ ## Filter data for the years of interest
 avg_penetration <- final.data %>%
   filter(year %in% 2010:2015, (avg_enrolled), (avg_eligibles)) %>%
   mutate(ma_share = avg_enrolled / avg_eligibles) %>%
@@ -129,22 +130,91 @@ kable(rating.2010, caption = "Number of Plans Rounded Up to Each Star Rating (20
 
 # 6. Using the RD estimator with a bandwidth of 0.125, provide an estimate of the effect of receiving a 3-star versus a 2.5 star rating on enrollments. Repeat the exercise to estimate the effects at 3.5 stars, and summarize your results in a table.
 
-# Filter 2010 and necessary variables
-final_2010 <- final.data %>%
-  filter(year == 2010, !is.na(partc_score), !is.na(avg_enrollment))
+rd_3.0 <- data.2010 %>%
+  filter(raw.rating >= 2.875 & raw.rating < 3.125) %>%
+  mutate(treatment = ifelse(raw.rating >= 3, 1, 0))
 
-## effect of 3.5-star vs 3-star rating
-rd_3.0 <- final_2010 %>%
-  filter(partc_score %in% c(2.5, 3.0)) %>%
-  mutate(treatment = ifelse(partc_score == 3.0, 1, 0))
-
-model_3.0 <- lm(avg_enrollment ~ treatment, data = rd_3.0)
+model_3.0 <- lm(mkt_share ~ treatment, data = rd_3.0)
 summary(model_3.0)
 
+rd_3.5 <- data.2010 %>%
+  filter(raw.rating >= 3.375 & raw.rating < 3.625) %>%
+  mutate(treatment = ifelse(raw.rating >= 3.5, 1, 0))
 
-final_2010 <- final.data %>%
-  filter(year == 2010)
+model_3.5 <- lm(mkt_share ~ treatment, data = rd_3.5)
+summary(model_3.5)
 
-glimpse(final_2010)
+tibble(
+  Cutoff = c("3 vs 2.5 Stars", "3.5 vs 3 Stars"),
+  Estimate = c(coef(model_3.0)[["treatment"]], coef(model_3.5)[["treatment"]])
+) %>%
+  knitr::kable(digits = 4, caption = "RD Estimates of Star Rating Impact on Market Share")
 
+# 7. Repeat your results for bandwidhts of 0.1, 0.12, 0.13, 0.14, and 0.15 (again for 3 and 3.5 stars). Show all of the results in a graph. How sensitive are your findings to the choice of bandwidth?
+
+library(broom)
+
+bandwidths <- c(0.10, 0.12, 0.13, 0.14, 0.15)
+results <- list()
+
+for (bw in bandwidths) {
+  # 3.0 cutoff
+  rd_3 <- data.2010 %>%
+    filter(raw.rating >= (3.0 - bw) & raw.rating < (3.0 + bw)) %>%
+    mutate(treatment = ifelse(raw.rating >= 3.0, 1, 0))
+  
+  model_3 <- lm(mkt_share ~ treatment, data = rd_3)
+  
+  tidy_3 <- tidy(model_3) %>%
+    filter(term == "treatment") %>%
+    mutate(bandwidth = bw, cutoff = "3.0 vs 2.5")
+  
+  # 3.5 cutoff
+  rd_35 <- data.2010 %>%
+    filter(raw.rating >= (3.5 - bw) & raw.rating < (3.5 + bw)) %>%
+    mutate(treatment = ifelse(raw.rating >= 3.5, 1, 0))
+  
+  model_35 <- lm(mkt_share ~ treatment, data = rd_35)
+  
+  tidy_35 <- tidy(model_35) %>%
+    filter(term == "treatment") %>%
+    mutate(bandwidth = bw, cutoff = "3.5 vs 3.0")
+  
+  # Combine results
+  results[[length(results)+1]] <- tidy_3
+  results[[length(results)+1]] <- tidy_35
+}
+
+rd_results <- bind_rows(results)
+
+# Plot
+ggplot(rd_results, aes(x = bandwidth, y = estimate, shape = cutoff)) +
+  geom_point(size = 3) +
+  geom_errorbar(aes(ymin = estimate - std.error, ymax = estimate + std.error),
+                width = 0.005) +
+  labs(
+    title = "RD Estimates by Star Ratings and Bandwidth",
+    x = "Bandwidth",
+    y = "Estimate and Standard Error",
+    shape = "Star Rating"
+  ) +
+  theme_minimal(base_size = 14)
+
+# 8. 
+ggplot(data.2010 %>% filter(raw.rating >= 2.5 & raw.rating <= 3.5), 
+       aes(x = raw.rating)) +
+  geom_histogram(binwidth = 0.05, fill = "lightblue", color = "black") +
+  geom_vline(xintercept = 3.0, color = "red", linetype = "dashed") +
+  labs(title = "Distribution of Raw Ratings Around 3-Star Cutoff (2010)",
+       x = "Raw Rating", y = "Count of Plans") +
+  theme_minimal()
+
+  ggplot(data.2010 %>% filter(raw.rating >= 3.0 & raw.rating <= 4.0), 
+       aes(x = raw.rating)) +
+  geom_histogram(binwidth = 0.05, fill = "lightgreen", color = "black") +
+  geom_vline(xintercept = 3.5, color = "red", linetype = "dashed") +
+  labs(title = "Distribution of Raw Ratings Around 3.5-Star Cutoff (2010)",
+       x = "Raw Rating", y = "Count of Plans") +
+  theme_minimal()
+  
 save.image("submission1/Hwk4_workspace.Rdata")
