@@ -200,7 +200,7 @@ ggplot(rd_results, aes(x = bandwidth, y = estimate, shape = cutoff)) +
   ) +
   theme_minimal(base_size = 14)
 
-# 8. 
+# 8. Examine (graphically) whether contracts appear to manipulate the running variable. In other words, look at the distribution of the running variable before and after the relevent threshold values. What do you find?
 ggplot(data.2010 %>% filter(raw.rating >= 2.5 & raw.rating <= 3.5), 
        aes(x = raw.rating)) +
   geom_histogram(binwidth = 0.05, fill = "lightblue", color = "black") +
@@ -216,5 +216,5 @@ ggplot(data.2010 %>% filter(raw.rating >= 2.5 & raw.rating <= 3.5),
   labs(title = "Distribution of Raw Ratings Around 3.5-Star Cutoff (2010)",
        x = "Raw Rating", y = "Count of Plans") +
   theme_minimal()
-  
-save.image("submission1/Hwk4_workspace.Rdata")
+
+save.image("submission2/Hwk4_workspace.Rdata")
