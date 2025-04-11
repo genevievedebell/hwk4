@@ -316,6 +316,14 @@ love.plot(bal_3.0,
           stars = "raw",
           title = "Covariate Balance Around 3-Star Cutoff")
 
+# Covariate balance near 3.5-star cutoff
+bal_3.5 <- bal.tab(treatment ~ HMO + partd, data = rd_3.5, estimand = "ATT")
+love.plot(bal_3.5,
+          var.order = "unadjusted",
+          thresholds = c(m = 0.1),
+          stars = "raw",
+          title = "Covariate Balance Around 3.5-Star Cutoff")
+
 ## The covariate balance plots reveal that plan characteristics are well-balanced around the 3.0-star threshold, suggesting that plans just above and below are comparable. However, there is a larger imbalance around the 3.5-star threshold, particularly in the share of HMO plans, indicating potential sorting or differences in plan composition that could bias the RD estimates at this cutoff.
 
 # 10. Summarize your findings from 5-9. What is the effect of increasing a star rating on enrollments? Briefly explain your results.
