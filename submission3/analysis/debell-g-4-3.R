@@ -17,7 +17,7 @@ ggplot(plans_per_county_year, aes(x = factor(year), y = plan_count)) +
   ) +
   theme_minimal()
 
-## Interpretation: From 2010 to 2015, the number of Medicare Advantage plans available per county has steadily increased. The median county had access to about 7–9 plans in 2010, rising to around 12–14 by 2015. At the same time, the number of counties with extremely high plan counts (over 75) also increased, suggesting growth in highly competitive markets. Despite these gains, a subset of counties remained underserved, with access to fewer than 5 plans in some years — highlighting potential disparities in choice.
+## The distribution of Medicare Advantage plan counts per county from 2010 to 2015 shows a gradual increase in both the median and the spread. While most counties offer between 8 and 13 plans, a small subset of counties have 60+ plans. Overall, the number appears generally sufficient but with notable disparities.
 
 # 2. Provide bar graphs showing the distribution of star ratings in 2010, 2012, and 2015. How has this distribution changed over time?
 
@@ -65,6 +65,8 @@ ggplot(avg_benchmark, aes(x = year, y = avg_benchmark)) +
   ) +
   theme_minimal()
 
+## Between 20100 and 2015, the average benchmark payment has risen by about 40 dollars. 
+
 #. 4. Plot the average share of Medicare Advantage (relative to all Medicare eligibles) over time from 2010 through 2015. Has Medicare Advantage increased or decreased in popularity? How does this share correlate with benchmark payments?
 
 ma.penetration.data %>%
@@ -108,6 +110,7 @@ clean_share <- ma.penetration.data %>%
   ) +
   theme_minimal()
 
+## Overtime, Medicare Advatange has increased in popularity. The average share of Medicare Advantage plans has increased from 24% in 2010 to 31% in 2015. This increase in popularity correlates with the increase in benchmark payments, suggesting that higher payments may have incentivized more beneficiaries to enroll in MA plans.
 
 # 5. Calculate the running variable underlying the star rating. Provide a table showing the number of plans that are rounded up into a 3-star, 3.5-star, 4-star, 4.5-star, and 5-star rating.
 
@@ -168,11 +171,43 @@ rd_3.5 <- data.2010 %>%
 model_3.5 <- lm(mkt_share ~ treatment, data = rd_3.5)
 summary(model_3.5)
 
+summary_3.0 <- summary(model_3.0)
+summary_3.5 <- summary(model_3.5)
+
+# Build table
 tibble(
-  Cutoff = c("3 vs 2.5 Stars", "3.5 vs 3 Stars"),
-  Estimate = c(coef(model_3.0)[["treatment"]], coef(model_3.5)[["treatment"]])
+  Statistic = c("Intercept", 
+                "Treatment Estimate", 
+                "Running Score Range", 
+                "Rounded to", 
+                "Observations", 
+                "R-squared", 
+                "RMSE"),
+  `3 Stars` = c(
+    round(coef(summary_3.0)[1,1], 4),
+    round(coef(summary_3.0)["treatment", 1], 4),
+    "[2.875, 3.125)",
+    "3.0",
+    nobs(model_3.0),
+    round(summary_3.0$r.squared, 4),
+    round(sqrt(mean(summary_3.0$residuals^2)), 4)
+  ),
+  `3.5 Stars` = c(
+    round(coef(summary_3.5)[1,1], 4),
+    round(coef(summary_3.5)["treatment", 1], 4),
+    "[3.375, 3.625)",
+    "3.5",
+    nobs(model_3.5),
+    round(summary_3.5$r.squared, 4),
+    round(sqrt(mean(summary_3.5$residuals^2)), 4)
+  )
 ) %>%
-  knitr::kable(digits = 4, caption = "RD Estimates of Star Rating Impact on Market Share")
+  knitr::kable(
+    caption = "Regression Discontinuity Estimates at 3 and 3.5 Star Cutoffs",
+    align = "lcc"
+  )
+
+
 
 # 7. Repeat your results for bandwidhts of 0.1, 0.12, 0.13, 0.14, and 0.15 (again for 3 and 3.5 stars). Show all of the results in a graph. How sensitive are your findings to the choice of bandwidth?
 
@@ -224,6 +259,8 @@ ggplot(rd_results, aes(x = bandwidth, y = estimate, shape = cutoff)) +
   ) +
   theme_minimal(base_size = 14)
 
+## The RD estimates for 3 vs. 2.5 stars and 3.5 vs. 3 stars are generally small and not statistically significant across bandwidths from 0.10 to 0.15. The results are relatively stable at the 3.5-star cutoff but more variable at the 3-star cutoff.
+
 # 8. Examine (graphically) whether contracts appear to manipulate the running variable. In other words, look at the distribution of the running variable before and after the relevent threshold values. What do you find?
 ggplot(data.2010 %>% filter(raw.rating >= 2.5 & raw.rating <= 3.5), 
        aes(x = raw.rating)) +
@@ -241,7 +278,49 @@ ggplot(data.2010 %>% filter(raw.rating >= 2.5 & raw.rating <= 3.5),
        x = "Raw Rating", y = "Count of Plans") +
   theme_minimal()
 
+## The histograms reveal a high concentration of raw scores just above the 3.0 and 3.5 thresholds, suggesting potential manipulation or strategic behavior by plans to cross the rating cutoffs. This bunching could indicate that some contracts are able to influence their raw scores to receive a higher rounded star rating.
+
 # 9. Similar to question 4, examine whether plans just above the threshold values have different characteristics than contracts just below the threshold values. Use HMO and Part D status as your plan characteristics.
 
+# For 3.0 star cutoff with 0.125 bandwidth
+rd_3.0 <- data.2010 %>%
+  filter(raw.rating >= 2.875 & raw.rating < 3.125) %>%
+  mutate(treatment = ifelse(raw.rating >= 3.0, 1, 0))
 
-save.image("submission2/Hwk4_workspace.Rdata")
+# For 3.5 star cutoff
+rd_3.5 <- data.2010 %>%
+  filter(raw.rating >= 3.375 & raw.rating < 3.625) %>%
+  mutate(treatment = ifelse(raw.rating >= 3.5, 1, 0))
+
+  # Create binary variables if missing
+rd_3.0 <- rd_3.0 %>%
+  mutate(
+    HMO = str_detect(plan_type, "HMO"),
+    partd = str_detect(plan_type, "Part D")
+  )
+
+rd_3.5 <- rd_3.5 %>%
+  mutate(
+    HMO = str_detect(plan_type, "HMO"),
+    partd = str_detect(plan_type, "Part D")
+  )
+
+  library(cobalt)
+
+# Covariate balance near 3-star cutoff
+bal_3.0 <- bal.tab(treatment ~ HMO + partd, data = rd_3.0, estimand = "ATT")
+
+love.plot(bal_3.0,
+          var.order = "unadjusted",
+          thresholds = c(m = 0.1),
+          stars = "raw",
+          title = "Covariate Balance Around 3-Star Cutoff")
+
+## The covariate balance plots reveal that plan characteristics are well-balanced around the 3.0-star threshold, suggesting that plans just above and below are comparable. However, there is a larger imbalance around the 3.5-star threshold, particularly in the share of HMO plans, indicating potential sorting or differences in plan composition that could bias the RD estimates at this cutoff.
+
+# 10. Summarize your findings from 5-9. What is the effect of increasing a star rating on enrollments? Briefly explain your results.
+
+## These results suggest that being rounded up to a 3-star rating increases market share by approximately 0.19 percentage points, while being rounded up to a 3.5-star rating increases market share by about 0.25 percentage points. Although small, these effects are consistent with the intuition that even marginal improvements in star ratings can influence enrollment. Covariate balance plots support the validity of the RD design at the 3.0 threshold, while balance is weaker at the 3.5 threshold, suggesting estimates at 3.5 may be less reliable due to potential sorting. Overall, star ratings appear to play a modest but measurable role in consumer choice.
+
+
+save.image("submission3/Hwk4_workspace.Rdata")
